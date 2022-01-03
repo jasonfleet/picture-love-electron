@@ -14,7 +14,11 @@ const Settings = (props) => {
             <div className='value'>1px<br/>2px</div>
 
             <div className='property'>Size:</div>
-            <div className='value'>100 x 100<br/>255 x 255</div>
+            <div className='value'>
+                <div><input type='checkbox' id='size-100x100' /> <label htmlFor='size-100x100'>100 x 100</label></div>
+                <div><input type='checkbox' id='size-128x128' /> <label htmlFor='size-128x128'>128 x 128</label></div>
+                <div><input type='checkbox' id='size-255x255' /> <label htmlFor='size-255x255'>255 x 255</label></div>
+            </div>
 
         </div>
     )

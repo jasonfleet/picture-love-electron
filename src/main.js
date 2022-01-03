@@ -47,8 +47,8 @@ const createWindow = () => {
         mainWindow.webContents.send('main-menu-view', message)
     })
 
-    mainWindow.on('main-menu-thumb', (message) => {
-        mainWindow.webContents.send('main-menu-thumb', message)
+    mainWindow.on('main-menu-tools', (message) => {
+        mainWindow.webContents.send('main-menu-tools', message)
     })
 
 };
@@ -78,6 +78,12 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+ipcMain.handle('get-paths', async (event) => {
+    return {
+        userData: app.getPath('userData')
+    }
+})
 
 
 // main

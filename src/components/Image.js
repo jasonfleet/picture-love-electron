@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
+import NoThumb from './icons/NoThumbIcon'
 
 const electron = window.electron
 
 const Image = (props) => {
-    const { onClick, file, hasThumb, height, selected, showProperties, width } = props
+    const { file, height, onClick, onMouseEnter, selected, showProperties, visible, width } = props
     // c - created (seconds)
     // e - file extension
     // n - name
@@ -12,27 +13,15 @@ const Image = (props) => {
     // u - last update (seconds)
     const { c, e, n, p, s, u } = file
 
+    const [hoverStartTime, setHoverStartTime ] = useState(null)
     const [imageSource, setImageSource ] = useState(null)
     const [state, setState ] = useState(0)
 
     const fetchThumbImage = () => {
         electron.fetchThumbImage(file).then(result => {
             setState(2)
-            console.log('fetchThumbImage', result.length)
             setImageSource(result)
         })
-    }
-
-    const image = () => {
-        if (hasThumb) {
-            if (imageSource === null) {
-                fetchThumbImage()
-            } else {
-                return {backgroundImage: 'URL(data:image;base64,' + imageSource + ')',}
-            }
-        }
-
-        return {}
     }
 
     const makeThumbImage = () => {
@@ -41,42 +30,44 @@ const Image = (props) => {
         })
     }
 
-    // const onClick = () => {
-    //     if (hasThumb()) {
-    //         fetchThumbImage(file)
-    //     } else {
-    //         makeThumbImage()
-    //     }
-    // }
-
     const renderProperties = () => {
         return showProperties
             ?   <div className='view-image-properties'>
-                    <div>{file.p}/{file.n}.{file.e}</div>
-                    {hasThumb
-                        ? <div>has thumb</div>
-                        : <div>no thumb</div>
-                    }
+                    <div>{file.n}.{file.e}</div>
+                    <div>{file._}</div>
                 </div>
             : <></>
     }
 
-    return (
-        <div
-            className='view-image-thumb'
-            onClick={() => onClick()}
-            style={{
-                ...image(),
-                ...{
+    const renderThumbImage = () => {
+        if (file.thumb !== null) {
+            if (imageSource === null) {
+                fetchThumbImage()
+            } else {
+                return <img src={'data:image;base64,' + imageSource} style={{ height: '100%', width: '100%',  objectFit: 'contain' }} />
+            }
+        }
+
+        return <div><NoThumb /></div>
+    }
+
+    return visible
+        ?   <div
+                className='view-gallery-item'
+                onClick={() => onClick()}
+                onMouseEnter={() => onMouseEnter(file)}
+                style={{
                     borderColor: selected ? 'orange' : '#676767',
                     height: (height + 4) + 'px',
                     width: (width + 4) + 'px',
-                }
-            }}
-        >
-            {renderProperties()}
-        </div>
-    )
+                }}
+            >
+                <div className='view-gallery-item-wrapper'>
+                    {renderThumbImage()}
+                    {renderProperties()}
+                </div>
+            </div>
+        : <></>
 
 }
 

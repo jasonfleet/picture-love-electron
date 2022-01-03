@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import Logo from './Logo'
+import Logo from './icons/LogoIcon'
 
 const electron = window.electron
 
@@ -8,6 +8,7 @@ const StartUp = (props) => {
 
     const [hasAlbumsFolder, setHasAlbumsFolder] = useState(null)
     const [hasAppFolder, setHasAppFolder] = useState(null)
+    const [hasConfig, setHasConfig] = useState(null)
     const [hasIndex, setHasIndex] = useState(null)
     const [hasRootFolder, setHasRootFolder] = useState(null)
     const [hasThumbsFolder, setHasThumbsFolder] = useState(null)
@@ -19,6 +20,7 @@ const StartUp = (props) => {
 
         electron.hasAlbumsFolder().then(result => setHasAlbumsFolder(result))
         electron.hasAppFolder().then(result => setHasAppFolder(result))
+        electron.hasConfig().then(result => setHasConfig(result))
         electron.hasIndex().then(result => setHasIndex(result))
         electron.hasRootFolder().then(result => setHasRootFolder(result))
         electron.hasThumbsFolder().then(result => setHasThumbsFolder(result))
@@ -54,6 +56,9 @@ const StartUp = (props) => {
                 Has app folder: {hasAppFolder === null ? '?' : hasAppFolder ? 'Yes' : 'No' }
             </div>
             <div>
+                Has config: {hasConfig === null ? '?' : hasConfig ? 'Yes' : 'No'}
+            </div>
+            <div>
                 Has index: {hasIndex === null ? '?' : hasIndex ? 'Yes' : 'No'}
             </div>
             <div>
@@ -67,7 +72,7 @@ const StartUp = (props) => {
 
             {!hasRootFolder
                 ? <><div>The root folder</div><div>{rootFolder}</div><div>is needed to continue.</div></>
-                : !hasAlbumsFolder || !hasAppFolder || !hasIndex || !hasThumbsFolder
+                : !hasAlbumsFolder || !hasAppFolder || !hasIndex  || !hasConfig || !hasThumbsFolder
                     ? <div><button onClick={() => initialize()}>initialize</button></div>
                     : <div><button onClick={() => show()}>show</button></div>
             }

@@ -8,11 +8,11 @@ const electron = window.electron
 const PictureLoveApp = (props) => {
 
     const [album, setAlbum] = useState(null)
-    const [fileList, setFileList ] = useState([])
-    const [mode, setMode ] = useState('settings')
+    const [settings, setSettings ] = useState([])
+    const [mode, setMode ] = useState('startUp')
     const [state, setState] = useState(0)
 
-    const registerWindowEvents = () => {
+    const registerMainEvents = () => {
         electron.onView((message) => {
             switch (message) {
                 case 'gallery':
@@ -26,7 +26,7 @@ const PictureLoveApp = (props) => {
 
     useEffect(() => {
         if (state === 0) {
-            registerWindowEvents()
+            registerMainEvents()
             setState(1)
         }
     });

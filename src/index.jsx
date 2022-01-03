@@ -1,11 +1,11 @@
 import React from 'react'
 import * as ReactDOM from 'react-dom'
 
-import PictureLoveApp from './PictureLoveApp';
+import PictureLove from './PictureLove';
 
 function render() {
     ReactDOM.render(
-        <PictureLoveApp />,
+        <PictureLove />,
         document.getElementById('app')
     )
 }

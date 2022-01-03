@@ -1,17 +1,20 @@
 // import { contextBridge, ipcRenderer } from 'electron'
+const { createHash } = require('crypto');
 const { contextBridge, ipcRenderer } = require('electron')
 const { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } = require('fs');
 const { readdir } = require('fs/promises')
 const path = require('path');
-const { contextIsolated, electron } = require('process');
 const sharp = require('sharp');
+
+let appPaths = { userData: '' }
 
 const settings = {
     albumsFolder: '/albums',
     appFolder: '__pl',
     indexFolder: 'index',
     extensions: [ 'avif', 'dzi', 'jpg', 'jpeg', 'nef', 'png', 'webp', 'tiff' ],
-    rootFolder: '/home/jason/Pictures', // '/home/jason/Documents/demo-images',
+    rootFolder: '/home/jason/Pictures',
+    // rootFolder: '/home/jason/Documents/demo-images',
     thumbsFolder: '/thumbs',
 }
 
@@ -22,7 +25,9 @@ const folders = {
     thumbs: path.join(settings.appFolder, settings.thumbsFolder),
 }
 
-const paths = {
+const hash = createHash('md5')
+
+const indexPaths = {
     index: path.join(folders.index, '__index.json'),
     thumb: path.join(folders.index, '__thumbs.json'),
 }
@@ -38,17 +43,7 @@ const fetchFileList = async (root, folder) => {
 
         const files = result.filter(dirent => dirent.isFile()).filter(file => { return settings.extensions.includes(file.name.split('.').pop().toLowerCase()) }).map(file =>
             {
-                let stats = statSync(path.join(rootFolderPath, file.name))
-                let filenameParts = file.name.split('.')
-
-                return {
-                    c: Math.floor(stats.birthtime.getTime() / 1000),    // created (seconds)
-                    e: filenameParts.pop(),                             // file extension
-                    n: filenameParts.join('.'),                         // name
-                    p: folder,                                          // path - relative to root
-                    s: stats.size,                                      // size
-                    u: Math.floor(stats.ctime.getTime() / 1000),        // last update (seconds)
-                }
+                return makeFileObject(file, folder, rootFolderPath)
             }
         )
 
@@ -64,11 +59,45 @@ const fetchFileList = async (root, folder) => {
     return []
 }
 
+const makeConfig = () => {
+    const configPath = path.join(appPaths.userData, 'user.settings.json')
+
+    if (!existsSync(configPath)) {
+        let time = Math.floor(new Date().getTime() / 1000)
+
+        writeFileSync(configPath, JSON.stringify({
+            created: time, files: [], updated: time,
+            thumbs: {
+                showProperties: true,
+                size: '100x100'
+            }
+        }), { flag: 'w' })
+    }
+}
+
+const makeFileObject = (file, folder, rootFolderPath) => {
+    let stats = statSync(path.join(rootFolderPath, file.name))
+    let filenameParts = file.name.split('.')
+
+    let ext = filenameParts.pop()
+    let filename = filenameParts.join('.')
+
+    let md5 = hash.copy().update(folder + '/' + filename).digest('hex')
+
+    return {
+        _: md5,
+        c: Math.floor(stats.birthtime.getTime() / 1000),    // created (seconds)
+        e: ext,                                             // file extension
+        n: filename,                                        // name
+        p: folder,                                          // path - relative to root
+        s: stats.size,                                      // size
+        u: Math.floor(stats.ctime.getTime() / 1000),        // last update (seconds)
+    }
+}
+
 const makeFolder = (p) => {
     if (!exists(p)) {
-        console.log('makeFolder', p)
         mkdirSync(path.join(settings.rootFolder, p), { recursive: true})
-        console.log('makeFolder2', p)
     }
 }
 
@@ -79,7 +108,7 @@ const makeFolders = () => {
 }
 
 const makeIndexes = () => {
-    Object.values(paths).forEach(p => {
+    Object.values(indexPaths).forEach(p => {
         if (!exists(p)) {
             let time = Math.floor(new Date().getTime() / 1000)
             writeFile(p, JSON.stringify({ created: time, files: [], updated: time}, { flag: 'w' }))
@@ -92,7 +121,6 @@ const readFile = (p, enc) => {
 }
 
 const registerWindowEvent = (channel, func) => {
-    // ipcRenderer.removeAllListeners(channel)
     ipcRenderer.on(channel, (e, message) => func(message))
 }
 
@@ -103,9 +131,13 @@ const writeFile = (p, data) => {
 contextBridge.exposeInMainWorld(
     'electron',
     {
+        fetchConfig: async () => {
+            return JSON.parse(readFile(appPaths.userData))
+        },
+
         // TODO: validate index
         fetchIndex: async () => {
-            return JSON.parse(readFile(paths.index))
+            return JSON.parse(readFile(indexPaths.index))
         },
 
         fetchFileList: async (folderPath) => {
@@ -119,11 +151,15 @@ contextBridge.exposeInMainWorld(
         },
 
         fetchImage: async (path) => {
-            return readFile(path).string('base64')
+            console.log('fetchImage', path)
+
+            return await readFile(path).string('base64')
         },
 
         fetchThumbImage: async (file) => {
-            return readFile(path.join(folders.thumbs, file.p, file.n + '.jpg'), 'base64')
+            const result = readFile(path.join(folders.thumbs, file.p, file.n + '.jpg'), 'base64')
+
+            return result
         },
 
         getRootFolder: () => {
@@ -134,6 +170,7 @@ contextBridge.exposeInMainWorld(
             if (exists('')) {
                 makeFolders()
                 makeIndexes()
+                makeConfig();
             }
 
             return true
@@ -148,11 +185,13 @@ contextBridge.exposeInMainWorld(
             return JSON.parse(readFile(p, { encoding: 'utf8' }))
         },
 
-        makeThumb: async (file) => {
+        makeThumb: (file) => {
             makeFolder(path.join(folders.thumbs, file.p))
 
             let source = path.join(settings.rootFolder, file.p, file.n + '.' + file.e)
             let target = path.join(settings.rootFolder, folders.thumbs, file.p, file.n + '.jpg')
+
+            console.log(source, target)
 
             sharp(source)
             .resize({ height: 256, width: 256, fit: 'inside'})
@@ -175,8 +214,13 @@ contextBridge.exposeInMainWorld(
             return exists(folders.app)
         },
 
+        hasConfig: async () => {
+            const configPath = path.join(appPaths.userData, 'user.settings.json')
+            return existsSync(configPath)
+        },
+
         hasIndex: async () => {
-            return exists(paths.index)
+            return exists(indexPaths.index)
         },
 
         hasThumbsFolder: async () => {
@@ -199,7 +243,13 @@ contextBridge.exposeInMainWorld(
             registerWindowEvent('main-menu-view', func)
         },
 
+        onTools: (func) => {
+            registerWindowEvent('main-menu-tools', func)
+        },
+
         // toggle: () => ipcRenderer.invoke('dark-mode:toggle'),
         // system: () => ipcRenderer.invoke('dark-mode:system')
     }
 )
+
+ipcRenderer.invoke('get-paths').then(result => appPaths = { ...appPaths, ...result })

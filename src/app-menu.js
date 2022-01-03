@@ -52,9 +52,17 @@ const template = [
     {
         label: 'View',
         submenu: [
-            { label: 'All' },
-            { label: 'Selected' },
-            { label: 'Un Selected' },
+            { label: 'All', click: (menuItem, browserWindow, event) => browserWindow.emit('main-menu-view', 'all') },
+            { label: 'Selected', click: (menuItem, browserWindow, event) => browserWindow.emit('main-menu-view', 'selected') },
+            { label: 'Un Selected', click: (menuItem, browserWindow, event) => browserWindow.emit('main-menu-view', 'unselected') },
+            { type: 'separator' },
+            {
+                label: 'Filter',
+                submenu: [
+                    { label: 'Sans Thumbs', click: (menuItem, browserWindow, event) => browserWindow.emit('main-menu-view', 'sans-thumb') }
+                ]
+            },
+
             { type: 'separator' },
             { role: 'resetZoom' },
             { role: 'zoomIn' },
@@ -70,12 +78,15 @@ const template = [
             { role: 'toggleDevTools' },
         ]
     },
+
+
     {
-        label: 'Thumbs',
+        label: 'Tools',
         submenu: [
-            { label: 'Generate Missing', click: (menuItem, browserWindow, event) => browserWindow.emit('main-menu-thumb', 'generate-missing') },
+            { label: 'Generate Thumbs', click: (menuItem, browserWindow, event) => browserWindow.emit('main-menu-tools', 'generate-thumbs') },
         ]
     },
+
     // { role: 'windowMenu' }
     {
         label: 'Window',
